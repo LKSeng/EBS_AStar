@@ -6,7 +6,8 @@ COPY ebs_astar_planner /root/catkin_ws/src/ebs_astar_planner
 SHELL ["bash", "-c"]
 
 # install dependencies
-RUN  cd /root/catkin_ws && \
+RUN apt update && \
+  cd /root/catkin_ws && \
   rosdep update && \
   rosdep install --from-paths src --ignore-src -r -y
 
