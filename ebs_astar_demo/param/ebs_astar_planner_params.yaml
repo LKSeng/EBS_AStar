@@ -1,0 +1,5 @@
+EBAStar:
+  use_grid_path: true     # currently, using grid path is more likely to generate paths for this planner
+  lethal_cost: 180        # use this to control how close to obstacles the global plan takes
+  publish_potential: true # set to false if no need for debug (save some system resource)
+

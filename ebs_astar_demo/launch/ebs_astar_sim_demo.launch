@@ -1,0 +1,28 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="model" default="burger" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="open_rviz" default="true"/>
+  <arg name="show_gazebo" default="true" />
+  <arg name="move_forward_only" default="false"/>
+  <arg name="x_pos" default="-2.0"/>
+  <arg name="y_pos" default="-0.5"/>
+
+  <!-- world launch -->
+  <include file="$(find ebs_astar_demo)/launch/world.launch">
+    <arg name="model" value="$(arg model)" />
+    <arg name="open_rviz" value="$(arg open_rviz)" />
+    <arg name="show_gazebo" value="$(arg show_gazebo)" />
+    <arg name="x_pos" value="$(arg x_pos)" />
+    <arg name="y_pos" value="$(arg y_pos)" />
+  </include>
+
+  <!-- navigation launch -->
+  <include file="$(find ebs_astar_demo)/launch/navigation.launch">
+    <arg name="open_rviz" value="$(arg open_rviz)" />
+    <arg name="move_forward_only" value="$(arg move_forward_only)" />
+    <arg name="initial_amcl_x" value="$(arg x_pos)" />
+    <arg name="initial_amcl_y" value="$(arg y_pos)" />
+  </include>
+
+</launch>
+

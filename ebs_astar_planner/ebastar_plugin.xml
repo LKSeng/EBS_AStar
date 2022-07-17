@@ -1,0 +1,8 @@
+<library path="lib/libebs_astar_planner">
+  <class name="EBS_AStar/EBAStar" type="ebs_astar_planner::EBAStar" base_class_type="nav_core::BaseGlobalPlanner">
+    <description>
+      A implementation of a grid based planner using EBS-A* [Wang et. al. 2022].
+    </description>
+  </class>
+</library>
+
