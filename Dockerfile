@@ -7,6 +7,7 @@ SHELL ["bash", "-c"]
 
 # install dependencies
 RUN apt update && \
+  apt install python3-catkin-tools -y && \
   cd /root/catkin_ws && \
   rosdep update && \
   rosdep install --from-paths src --ignore-src -r -y
