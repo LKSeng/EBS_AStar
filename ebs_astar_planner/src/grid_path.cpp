@@ -73,6 +73,7 @@ bool GridPath::getPath(float* potential, double start_x, double start_y, double 
             return false;
 
         //** path smoothing is done here **//
+        /*
         if ( (path[1].first == min_x) || (( path[1].second == (min_y+2) ) && ( path[1].second == (min_y-2) )) ){
             path.pop_back();
             current.first = min_x;
@@ -83,6 +84,7 @@ bool GridPath::getPath(float* potential, double start_x, double start_y, double 
             current.second = min_y;
             path.push_back(current);
         }
+        */
         //*********************************//
 
         current.first = min_x;
