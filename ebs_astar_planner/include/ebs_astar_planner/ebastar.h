@@ -72,10 +72,12 @@ class AStarExpansion : public global_planner::Expander {
         virtual ~AStarExpansion() {}
         bool calculatePotentials(unsigned char* costs, double start_x, double start_y, double end_x, double end_y, int cycles,
                                 float* potential);
+        int impt_dir1, impt_dir2;
     private:
         void keep_queue_(float before_cost,int i);
         void add(unsigned char* costs, float* potential, float prev_potential, int next_i, int end_x, int end_y);
         void add1(unsigned char* costs, float* potential, float prev_potential, int next_i, int end_x, int end_y);
+        std::set<int> queue1_visited_, queue2_visited_;
         std::vector<Index> queue_, queue2_;
 };
 

@@ -42,6 +42,7 @@
 #include <costmap_2d/costmap_2d.h>
 
 #include <ebs_astar_planner/ebastar.h>
+#include <ebs_astar_planner/bidirectional_potential_calculator.h>
 #include <ebs_astar_planner/grid_path.h>
 #include <global_planner/gradient_path.h>
 #include <global_planner/quadratic_calculator.h>
@@ -104,11 +105,8 @@ void EBAStar::initialize(std::string name, costmap_2d::Costmap2D* costmap, std::
         convert_offset_ = 0.0;
 
         bool use_quadratic;
-        private_nh.param("use_quadratic", use_quadratic, true);
-        if (use_quadratic)
-            p_calc_ = new global_planner::QuadraticCalculator(cx, cy);
-        else
-            p_calc_ = new global_planner::PotentialCalculator(cx, cy);
+        private_nh.param("use_quadratic", use_quadratic, false);
+        p_calc_ = new BidirectionalPotentialCalculator(cx, cy);
 
         planner_ = new AStarExpansion(p_calc_, cx, cy);
 
@@ -333,9 +331,32 @@ bool EBAStar::getPlanFromPotential(double start_x, double start_y, double goal_x
 
     std::vector<std::pair<float, float> > path;
 
+    /*
     if (!path_maker_->getPath(potential_array_, start_x, start_y, goal_x, goal_y, path)) {
         ROS_ERROR("NO PATH!");
         return false;
+    }
+    */
+
+    unsigned int cx = costmap_->getSizeInCellsX();
+    unsigned int ccx, ccy;
+    if (dynamic_cast<AStarExpansion*>(planner_)->impt_dir2 > 0) {
+        ccx = dynamic_cast<AStarExpansion*>(planner_)->impt_dir2%cx;
+        ccy = dynamic_cast<AStarExpansion*>(planner_)->impt_dir2/cx;
+        if (!path_maker_->getPath(potential_array_, goal_x, goal_y, ccx, ccy, path)) {
+            ROS_ERROR("NO PATH1!");
+            return false;
+        }
+        std::reverse(path.begin(), path.end());
+    }
+
+    if (dynamic_cast<AStarExpansion*>(planner_)->impt_dir1 > 0) {
+        ccx = dynamic_cast<AStarExpansion*>(planner_)->impt_dir1%cx;
+        ccy = dynamic_cast<AStarExpansion*>(planner_)->impt_dir1/cx;
+        if (!path_maker_->getPath(potential_array_, start_x, start_y, ccx, ccy, path)) {
+            ROS_ERROR("NO PATH2!");
+            return false;
+        }
     }
 
     ros::Time plan_time = ros::Time::now();

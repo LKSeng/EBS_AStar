@@ -37,6 +37,8 @@
  *********************************************************************/
 #include<ebs_astar_planner/ebastar.h>
 #include<costmap_2d/cost_values.h>
+#include <ebs_astar_planner/bidirectional_potential_calculator.h>
+#include<ros/ros.h>
 
 namespace ebs_astar_planner {
 
@@ -48,6 +50,9 @@ bool AStarExpansion::calculatePotentials(unsigned char* costs, double start_x, d
                                         int cycles, float* potential) {
     queue_.clear();
     queue2_.clear();
+    queue1_visited_.clear();
+    queue2_visited_.clear();
+    impt_dir1 = impt_dir2 = -1;
 
     //get index of start point in the 1-d array
     int start_i = toIndex(start_x, start_y);
@@ -56,14 +61,14 @@ bool AStarExpansion::calculatePotentials(unsigned char* costs, double start_x, d
     //get index of end point in the 1-d array
     int end_i = toIndex(end_x, end_y);
     //add end point to back of queue 2
-    queue2_.push_back(Index(end_i, 1e10));
+    queue2_.push_back(Index(end_i, 0));
 
     //initialise entire map with potential of 1.0e10
     std::fill(potential, potential + ns_, POT_HIGH);
     //set potential of start point to be 0
     potential[start_i] = 0;
     //set potential of end point to be 1e10 (big?, for convenience)
-    potential[end_i] = 1e10;
+    potential[end_i] = 0;
 
     int goal1_i = toIndex(end_x, end_y);
     int goal2_i = toIndex(start_x, start_y);
@@ -75,14 +80,16 @@ bool AStarExpansion::calculatePotentials(unsigned char* costs, double start_x, d
         std::pop_heap(queue_.begin(), queue_.end(), greater1()); //priority queue
         queue_.pop_back();
         Index top2 = queue2_[0];
-        std::pop_heap(queue2_.begin(), queue2_.end(), less1()); //priority queue
+        std::pop_heap(queue2_.begin(), queue2_.end(), greater1()); //priority queue
         queue2_.pop_back();
 
         //Begin search from start to end point
         int i = top1.i;
-        if (i == goal1_i)
+        if (i == goal1_i) {
+            impt_dir1 = i;
             return true;
-        
+        }
+
         //Begin search from end to start point
         int j = top2.i;
         if (j == goal2_i)
@@ -100,6 +107,7 @@ bool AStarExpansion::calculatePotentials(unsigned char* costs, double start_x, d
                 queue_.push_back(out);
                 std::push_heap(queue_.begin(), queue_.end(), less1());
             }
+            impt_dir2 = j;
             return true;
         }
 
@@ -111,6 +119,21 @@ bool AStarExpansion::calculatePotentials(unsigned char* costs, double start_x, d
         for(int i_dir=0;i_dir<4;i_dir++){
             for(int j_dir=0;j_dir<4;j_dir++){
                 if(i_next[i_dir] == j_next[j_dir]){
+
+ /*
+                    float max_cost = -1;
+                    for (std::set<int>::iterator it = queue2_visited_.begin(); it != queue2_visited_.end(); it++) {
+                        if ((potential[*it] > max_cost) and (potential[*it] < 1e10)) max_cost = potential[*it];
+                    }
+                    max_cost = 2*before_cost;
+
+                    for (std::set<int>::iterator it = queue2_visited_.begin(); it != queue2_visited_.end(); it++) {
+                        potential[*it] = max_cost - potential[*it];
+                    }
+                    //potential[goal1_i] = 1e10 - 1;
+ */
+                    impt_dir1 = i;
+                    impt_dir2 = j;
                     keep_queue_(before_cost,i_next[i_dir]);
                     return true;
                 }
@@ -155,6 +178,7 @@ void AStarExpansion::add(unsigned char* costs, float* potential, float prev_pote
     int x = next_i % nx_, y = next_i / nx_; //x and y coordinates
     float distance = abs(end_x - x) + abs(end_y - y); //Manhattan distance
 
+    queue1_visited_.insert(next_i);
     //Push the next waypoint and its estimated total cost (traveled cost and estimated cost)
     queue_.push_back(Index(next_i, potential[next_i] + distance * neutral_cost_));
     //The priority queue after the push is sorted from large to small, that is, the current forward path
@@ -177,15 +201,16 @@ void AStarExpansion::add1(unsigned char* costs, float* potential, float prev_pot
         return;
 
     //If the above is not the case, then the cost of the node with the smallest estimated cost among the adjacent nodes of the next node plus the current cost is taken as the cost of the next point
-    potential[next_i] = p_calc_->calculatePotential(potential, costs[next_i] + neutral_cost_, next_i, prev_potential);
+    potential[next_i] = (dynamic_cast<BidirectionalPotentialCalculator*>(p_calc_))->calculatePotential1(potential, costs[next_i] + neutral_cost_, next_i, prev_potential);
     /*potential[next_i] = p_calc_->calculatePotential1(potential, - costs[next_i] - neutral_cost_, next_i, prev_potential);*/
     int x = next_i % nx_, y = next_i / nx_; //x and y coordinates
     float distance = abs(end_x - x) + abs(end_y - y); //Manhattan distance
 
+    queue2_visited_.insert(next_i);
     //Push the next waypoint and its estimated total cost (traveled cost and estimated cost)
-    queue2_.push_back(Index(next_i, potential[next_i] - distance * neutral_cost_));
+    queue2_.push_back(Index(next_i, potential[next_i] + distance * neutral_cost_));
     //The priority queue after the push is sorted from large to small, that is, the current forward path
-    std::push_heap(queue2_.begin(), queue2_.end(), less1());
+    std::push_heap(queue2_.begin(), queue2_.end(), greater1());
 }
 
 //maintains integrity of the queue
